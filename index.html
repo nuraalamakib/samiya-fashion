@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="bn" class="transition-all">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Samiya Fashion</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pulltorefreshjs/0.1.22/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script>tailwind.config={darkMode:'class'}</script>
+    <style>
+#receiptArea {
+    /* টেক্সট যাতে ফেটে না যায় তার জন্য */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* ফন্ট সাইজ এবং লাইন হাইট ফিক্স */
+    line-height: 1.4 !important;
+}
+
+/* পিডিএফ এর ভেতরের টেবিল লেখা স্পষ্ট করতে */
+#receiptArea table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+}
+
+#receiptArea td, #receiptArea th {
+    border-bottom: 1px solid #eee !important;
+}
+#receiptArea {
+    font-family: 'Hind Siliguri', sans-serif !important;
+    image-rendering: -webkit-optimize-contrast; /* ছবি ফাটবে না */
+    image-rendering: crisp-edges;
+    transform: translateZ(0); /* হার্ডওয়্যার এক্সিলারেশন */
+}
+/* যুক্তবর্ণ যাতে না লেগে যায় তার জন্য লেটার স্পেসিং */
+#receiptArea * {
+    letter-spacing: 0.3px !important; 
+    -webkit-font-smoothing: antialiased;
+}        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;500;700&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; transition: .3s; }
+        .tab-content { display: none; animation: fadeIn .4s ease; }
+        .active-tab { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: 0; } }
+        nav { height: 65px; display: flex; align-items: center; background: rgba(255,255,255,.95); border-top: 1px solid rgba(0,0,0,.05); }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; transition: .3s; color: #6b7280; background: 0; border: 0; padding: 0 15px; }
+        .nav-active { color: #e11d48 !important; transform: scale(1.25); text-shadow: 0 0 12px rgba(225,29,72,.6), 0 0 25px rgba(225,29,72,.3); }
+        .nav-btn i { font-size: 1.2rem; margin-bottom: 2px; }
+        .dark body { background: #1a1a1a; color: #e5e7eb; }
+        .dark nav { background: #1a1a1a; border-top: 1px solid rgba(255,255,255,.1); }
+        .dark .bg-white { background: #2d2d2d; }
+        .dark .border { border-color: #404040; }
+        .dark input, .dark select, .dark textarea { background: #3d3d3d; border-color: #4d4d4d; color: #fff; }
+        .fab-button { position: fixed; bottom: 80px; right: 20px; z-index: 50; }
+        #receiptArea { letter-spacing: 0.01rem; }
+    </style>
+</head>
+<body class="bg-[#f4f7f6] pb-20">
+
+<div id="loginOverlay" class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
+    <div class="bg-white/20 backdrop-blur-lg p-8 rounded-3xl shadow-2xl w-80 text-center animate__animated animate__fadeInDown">
+        <div class="mb-6">
+            <div class="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"><i class="fa-solid fa-lock text-3xl text-rose-600"></i></div>
+            <h2 class="text-white text-2xl font-bold">সামিয়া ফ্যাশন</h2>
+            <p class="text-rose-100 text-sm">প্রবেশ করতে পিন দিন</p>
+        </div>
+        <div class="space-y-4">
+            <input type="password" id="pinInput" maxlength="4" placeholder="••••" class="w-full text-center text-3xl tracking-[15px] p-3 rounded-xl outline-none">
+            <button onclick="checkPin()" class="w-full bg-white text-rose-600 font-bold py-3 rounded-xl active:scale-95 transition-all">আনলক করুন</button>
+            <button onclick="showRecovery()" class="text-rose-100 text-xs mt-4 underline">পিন ভুলে গেছেন?</button>
+        </div>
+    </div>
+</div>
+
+<header class="bg-rose-600 text-white p-4 shadow-lg sticky top-0 z-50 flex flex-col items-center justify-center">
+    <span class="text-xl font-bold">সামিয়া ফ্যাশন</span>
+    <div class="flex items-center gap-3 mt-1">
+        <div id="statusIndicator" class="flex items-center gap-1">
+            <span class="relative flex h-2 w-2">
+                <span id="statusPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span id="statusDot" class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span id="statusText" class="text-[10px] uppercase tracking-widest">Online</span>
+        </div>
+        <span class="text-rose-300">|</span>
+        <button onclick="toggleDarkMode()" class="text-white text-lg"><i id="darkIcon" class="fa-solid fa-moon"></i></button>
+    </div>
+</header>
+
+<main class="p-4" id="main-content">
+    <div id="customer" class="tab-content active-tab">
+        <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট জমা</p><p id="dashJoma" class="text-green-600 font-bold">৳ ০</p></div>
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট বাকি</p><p id="dashBaki" class="text-rose-600 font-bold">৳ ০</p></div>
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট ব্যালেন্স</p><p id="dashBalance" class="font-bold">৳ ০</p></div>
+        </div>
+        <input type="text" id="custSearch" onkeyup="searchCustomer()" placeholder="কাস্টমার খুঁজুন..." class="w-full p-2 mb-4 border rounded-lg focus:ring-2 focus:ring-rose-500 outline-none">
+        <div class="flex justify-end gap-4 px-4 py-2 bg-gray-50 border-b dark:bg-[#2d2d2d] mb-2">
+            <button onclick="sortDataByBalance('desc')" class="flex items-center gap-1 text-sm font-medium text-rose-600 px-2 py-1 rounded"><i class="fa-solid fa-arrow-down-9-1"></i> বেশি বাকি</button>
+            <button onclick="sortDataByBalance('asc')" class="flex items-center gap-1 text-sm font-medium text-green-600 px-2 py-1 rounded"><i class="fa-solid fa-arrow-up-1-9"></i> কম বাকি</button>
+        </div>
+        <div class="space-y-3" id="customerList"></div>
+    </div>
+
+    <div id="company" class="tab-content">
+        <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট পরিশোধ</p><p id="compPaid" class="text-green-600 font-bold">৳ ০</p></div>
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট ক্রয়</p><p id="compBuy" class="text-rose-600 font-bold">৳ ০</p></div>
+            <div class="bg-white p-2 rounded shadow"><p class="text-xs text-gray-500">মোট দেনা</p><p id="compDena" class="font-bold">৳ ০</p></div>
+        </div>
+        <input type="text" id="compSearch" onkeyup="searchCompany()" placeholder="কোম্পানি খুঁজুন..." class="w-full p-2 mb-4 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+        <div class="space-y-3" id="companyList"></div>
+    </div>
+
+    <div id="summary" class="tab-content">
+        <div class="bg-white dark:bg-[#2d2d2d] p-4 rounded-xl shadow-md mb-6 border-b-4 border-rose-500">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-filter text-rose-500"></i> তারিখ ফিল্টার</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-xs text-gray-500 block mb-1">শুরু</label><input type="date" id="sumStart" class="w-full p-2 text-sm border rounded"></div>
+                <div><label class="text-xs text-gray-500 block mb-1">শেষ</label><input type="date" id="sumEnd" class="w-full p-2 text-sm border rounded"></div>
+            </div>
+            <button onclick="processAndDisplayData()" class="w-full mt-3 bg-rose-600 text-white p-2 rounded font-bold text-sm shadow-sm">রিপোর্ট দেখুন</button>
+        </div>
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-[#2d2d2d] p-4 rounded-xl shadow-md">
+                <h3 class="font-bold text-rose-600 mb-3 border-b pb-1">কাস্টমার সামারি</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div><span class="text-gray-500">মোট বিক্রি</span><br><span id="sumCustBakiTotal" class="font-bold text-rose-600">৳ ০</span></div>
+                    <div><span class="text-gray-500">মোট জমা</span><br><span id="sumCustJomaTotal" class="font-bold text-green-600">৳ ০</span></div>
+                    <div class="col-span-2 border-t pt-2"><span class="text-gray-500">অবশিষ্টাংশ</span> <span id="sumCustRemaining" class="font-bold dark:text-white">৳ ০</span></div>
+                </div>
+                <div class="mt-4 h-48"><canvas id="custChart"></canvas></div>
+            </div>
+            <div class="bg-white dark:bg-[#2d2d2d] p-4 rounded-xl shadow-md">
+                <h3 class="font-bold text-blue-600 mb-3 border-b pb-1">কোম্পানি সামারি</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div><span class="text-gray-500">মোট ক্রয়</span><br><span id="sumCompBuyTotal" class="font-bold text-rose-600">৳ ০</span></div>
+                    <div><span class="text-gray-500">মোট পরিশোধ</span><br><span id="sumCompPaidTotal" class="font-bold text-green-600">৳ ০</span></div>
+                    <div class="col-span-2 border-t pt-2"><span class="text-gray-500">বর্তমান দেনা</span> <span id="sumCompDenaTotal" class="font-bold dark:text-white">৳ ০</span></div>
+                </div>
+                <div class="mt-4 h-48"><canvas id="compChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu" class="tab-content">
+    <div class="space-y-4">
+        <button class="w-full bg-white dark:bg-[#2d2d2d] p-4 rounded-lg shadow-sm flex items-center gap-4"><i class="fa-solid fa-file-invoice text-rose-500"></i> কাস্টমার রিপোর্ট</button>
+        <button class="w-full bg-white dark:bg-[#2d2d2d] p-4 rounded-lg shadow-sm flex items-center gap-4"><i class="fa-solid fa-building text-blue-500"></i> কোম্পানি রিপোর্ট</button>
+        
+        <a href="https://eremonrahman.blogspot.com/" target="_blank" class="w-full bg-blue-600 text-white p-4 rounded-lg shadow-sm flex items-center justify-center gap-4 active:scale-95 transition-transform">
+            <i class="fa-solid fa-globe text-2xl"></i> আমাদের ওয়েবসাইট
+        </a>
+
+        <a href="https://wa.me/8801816311351" target="_blank" class="w-full bg-green-500 text-white p-4 rounded-lg shadow-sm flex items-center justify-center gap-4 active:scale-95 transition-transform">
+            <i class="fa-brands fa-whatsapp text-2xl"></i> হেল্পলাইন
+        </a>
+        
+        <div class="text-center pt-10 text-gray-400 text-sm italic">&copy; ২০২৬ সামিয়া ফ্যাশন  | ডেভলপড বাই নুর-এ-আলম আকিব</div>
+    </div>
+</div>
+
+    <div id="reportModal" class="fixed inset-0 bg-black/70 hidden z-[110] flex items-center justify-center p-2 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-4xl h-[95vh] rounded-xl flex flex-col dark:bg-[#2d2d2d]">
+            <div class="p-4 border-b dark:border-gray-600 bg-gray-50 dark:bg-[#383838] rounded-t-xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-bold text-rose-600 flex items-center gap-2"><i class="fa-solid fa-file-invoice"></i> রিপোর্ট ফিল্টার</h2>
+                    <button onclick="closeReport()" class="bg-gray-200 dark:bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all">&times;</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <input type="date" id="reportStart" onchange="filterReport()" class="p-2 border rounded text-xs dark:bg-[#2d2d2d]">
+                    <input type="date" id="reportEnd" onchange="filterReport()" class="p-2 border rounded text-xs dark:bg-[#2d2d2d]">
+                    <button onclick="filterReport()" class="col-span-2 sm:col-span-1 bg-rose-600 text-white px-3 py-1 rounded text-xs font-bold shadow active:scale-95">ফিল্টার</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto bg-gray-100 dark:bg-[#1a1a1a] p-2 sm:p-4">
+                <div id="receiptArea" class="bg-white p-6 max-w-2xl mx-auto shadow-xl rounded-lg text-black">
+                    <div class="text-center border-b-2 border-rose-500 pb-4 mb-4">
+                        <h1 class="text-3xl font-bold text-rose-600 mb-1">সামিয়া ফ্যাশন</h1>
+                        <p class="text-sm text-gray-600">প্রোঃ মোঃ ফাইজুল ইসলাম</p>
+                        <p class="text-sm text-gray-600">পরিচালনায়ঃ ইমন রহমান | মোবাইল: 01322-398708</p>
+                        <p class="text-xs text-gray-500">ঠিকানা:বাগানবাড়ি রোড, ভৈরব বাজার</p>
+                    </div>
+                    <div class="flex justify-between items-end mb-4 text-sm border-b pb-2 border-gray-200 border-dashed">
+                        <div><p class="text-gray-500 text-xs">অ্যাকাউন্ট নাম</p><h3 id="rcptName" class="font-bold text-lg">নাম</h3><p id="rcptPhone" class="text-gray-600 font-bold"></p><p id="rcptAddress" class="text-xs text-gray-400 font-medium"></p></div>
+                        <div class="text-right"><p class="text-xs text-gray-500">পিরিয়ড</p><p id="rcptDateRange" class="font-mono font-bold text-xs">-</p><p id="genDate" class="text-[9px] text-gray-400 mt-1"></p></div>
+                    </div>
+                    <div class="flex justify-between bg-gray-100 p-2 rounded mb-2 text-sm">
+                        <span class="font-bold text-gray-600">পূর্বের জের</span>
+                        <span id="prevBalance" class="font-bold">৳ ০</span>
+                    </div>
+                    <table class="w-full text-sm mb-4">
+                        <thead><tr class="border-b-2 border-black text-xs"><th class="text-left py-2">তারিখ</th><th class="text-left py-2">বিবরণ</th><th class="text-right py-2 text-green-700">জমা</th><th class="text-right py-2 text-rose-700">বাকি</th></tr></thead>
+                        <tbody id="rcptBody" class="font-mono text-xs"></tbody>
+                    </table>
+                    <div class="border-t-2 border-black pt-2 flex flex-col items-end gap-1">
+                        <div class="flex justify-between w-48 text-sm"><span>মোট জমা:</span><span id="totalJoma" class="font-bold text-green-700">৳ ০</span></div>
+                        <div class="flex justify-between w-48 text-sm"><span>মোট বাকি:</span><span id="totalBaki" class="font-bold text-rose-700">৳ ০</span></div>
+                        <div class="flex justify-between w-48 text-base bg-rose-600 text-white p-1 rounded font-bold mt-2"><span>বর্তমান দেনা:</span><span id="finalBalance">৳ ০</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t dark:border-gray-600 bg-white dark:bg-[#383838] flex gap-3">
+                <button onclick="downloadPDF()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                <button onclick="shareReport()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95"><i class="fa-solid fa-share-nodes"></i> Share</button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="toggleModal()" class="fab-button bg-rose-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl animate-bounce"><i class="fa-solid fa-plus"></i></button>
+
+    <div id="entryModal" class="fixed inset-0 bg-black/50 hidden z-[100] p-4 flex items-center justify-center">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 overflow-y-auto max-h-[90vh] dark:bg-[#2d2d2d]">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-xl font-bold text-rose-600">নতুন এন্ট্রি</h2>
+                <button onclick="toggleModal()" class="text-gray-500 text-2xl">&times;</button>
+            </div>
+            <form id="dataForm" class="space-y-4">
+                <select id="entrySource" class="w-full p-3 border rounded-lg dark:bg-[#3d3d3d]" onchange="updateFields()">
+                    <option value="customer">👤 কাস্টমার এন্ট্রি</option>
+                    <option value="company">🏢 কোম্পানি এন্ট্রি</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs font-bold">তারিখ</label><input type="date" id="date" class="w-full p-3 border rounded-lg text-sm" required></div>
+                    <div><label class="text-xs font-bold">ধরণ</label><select id="type" class="w-full p-3 border rounded-lg text-sm"></select></div>
+                </div>
+                <div id="dynamicFields" class="space-y-4"></div>
+                <datalist id="nameSuggestions"></datalist>
+                <datalist id="mobileSuggestions"></datalist>
+                <div>
+                    <label class="text-xs font-bold">টাকা (৳)</label>
+                    <input type="text" id="amountDisplay" placeholder="৳ ০.০০" onkeyup="handleAmountInput(this)" class="w-full p-3 border rounded-lg font-bold" required>
+                    <input type="hidden" id="amount">
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button type="reset" class="flex-1 bg-gray-200 dark:bg-gray-700 p-3 rounded-lg">ক্লিয়ার</button>
+                    <button type="submit" id="submitBtn" class="flex-1 bg-rose-600 text-white p-3 rounded-lg font-bold">সাবমিট</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<nav class="fixed bottom-0 w-full bg-white dark:bg-[#2d2d2d] border-t flex justify-around p-2 shadow-2xl z-50">
+    <button onclick="showTab('customer')" class="nav-btn nav-active"><i class="fa-solid fa-users"></i><span class="text-[10px]">Customer</span></button>
+    <button onclick="showTab('company')" class="nav-btn"><i class="fa-solid fa-briefcase"></i><span class="text-[10px]">Company</span></button>
+    <button onclick="showTab('summary')" class="nav-btn"><i class="fa-solid fa-chart-pie"></i><span class="text-[10px]">Summary</span></button>
+    <button onclick="showTab('menu')" class="nav-btn"><i class="fa-solid fa-bars"></i><span class="text-[10px]">Menu</span></button>
+</nav>
+
+<script>
+// ১. সেটিংস ও ডাটাবেস
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwdJrQ_1voWsR5HXpvnBP5PjsnJJm3gXiAGNRty7D58GRcebfw32cKQhVXTQtQcwPiaWQ/exec";
+let mainData=[], personMeta={}, custChartInstance=null, compChartInstance=null;
+let MAIN_PIN=localStorage.getItem("app_pin")||"8899", RECOVERY_PIN="01816311351";
+let displayedCount = 20, isFetching = false, currentReportName = "";
+const successAudio=new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3");
+const refreshAudio=new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+
+// IndexedDB Setup
+const db = new Dexie("SamiyaFashionDB");
+db.version(1).stores({ entries: '++id, date, source, type, name, amount, status', meta: 'key, value' });
+
+// ২. আপনার দেওয়া সিকিউরিটি ও ইউটিলিটি ফাংশন (অবিকল)
+function convertToEnDigit(str){const banglaDigits={'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};return str.toString().replace(/[০-৯]/g,d=>banglaDigits[d])}
+function checkPin(){const e=convertToEnDigit(document.getElementById("pinInput").value);e===MAIN_PIN?(sessionStorage.setItem("isLoggedIn","true"),document.getElementById("loginOverlay").classList.add("animate__fadeOutUp"),setTimeout(()=>{document.getElementById("loginOverlay").classList.add("hidden")},500)):(Swal.fire({icon:"error",title:"ভুল পিন!",confirmButtonColor:"#e11d48"}),document.getElementById("pinInput").value="")}
+async function showRecovery(){const{value:e}=await Swal.fire({title:"রিকোভারি পিন দিন",input:"password",showCancelButton:!0,confirmButtonColor:"#e11d48"});let r=convertToEnDigit(e||"");if(r===RECOVERY_PIN){const{value:n}=await Swal.fire({title:"নতুন ৪ ডিজিটের পিন",input:"text",inputAttributes:{maxlength:4},showCancelButton:!0,confirmButtonColor:"#10b981"});let p=convertToEnDigit(n||"");p&&4===p.length&&(localStorage.setItem("app_pin",p),MAIN_PIN=p,Swal.fire("সফল!","পিন পরিবর্তন হয়েছে।","success"))}}
+function parseToISODate(rawDate){ if(!rawDate)return ""; let str=rawDate.toString().split(" ")[0]; let parts=str.split("/"); if(parts.length===3){ let y=parts[2].length===2?"20"+parts[2]:parts[2]; return `${y}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;} return "";}
+
+function calculateCurrentBalances(){
+    let o={};
+    mainData.slice(1).forEach((e,idx)=>{
+        const src=e[2], name=e[3], mob=e[4], det=e[5], typ=e[6], amt=parseFloat(e[7])||0;
+        if(!name)return;
+        if(!o[name])o[name]={name:name,mobile:mob,details:det,source:src,balance:0,lastIndex:idx};
+        o[name].lastIndex=idx;
+        if(src==="customer") typ==="Joma"?o[name].balance-=amt:o[name].balance+=amt;
+        else typ==="Payment"?o[name].balance-=amt:o[name].balance+=amt;
+    });
+    return o;
+}
+
+function renderCustomerUI(sortedData){
+    const e=document.getElementById("customerList"), n=document.getElementById("companyList");
+    if(!e || !n)return; e.innerHTML=""; n.innerHTML="";
+    sortedData.slice(0, displayedCount).forEach(t=>{
+        const info=personMeta[t.name]||{};
+        const balanceColor=t.balance>0?"text-rose-600":(t.balance<0?"text-green-600":"text-gray-600");
+        const borderColor=t.source==="customer"?"border-rose-500":"border-blue-500";
+        const cardHtml=`<div class="bg-white dark:bg-[#2d2d2d] p-4 rounded-xl shadow-sm flex flex-wrap justify-between items-center border-l-4 ${borderColor} mb-2 animate__animated animate__fadeIn">
+            <div class="flex-1 min-w-[150px]"><h3 class="font-bold text-lg">${t.name}</h3><div class="flex flex-col gap-0.5 mt-1"><p class="text-xs text-gray-500"><i class="fa-solid fa-location-dot"></i> ${info.details||'ঠিকানা নেই'}</p>${info.mobile?`<a href="tel:${info.mobile}" class="text-blue-600 text-xs font-medium"><i class="fa-solid fa-phone-flip"></i> ${info.mobile}</a>`:'<span class="text-gray-400 text-xs italic">মোবাইল নেই</span>'}</div></div>
+            <button onclick="openCustomReport('${t.name}')" class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg border ml-2 shadow-sm active:scale-95 transition-transform"><span class="${balanceColor} font-bold">৳ ${formatNumber(Math.abs(t.balance))} ${t.balance<0?'(জমা)':''}</span><i class="fa-solid fa-file-lines text-gray-400"></i></button></div>`;
+        t.source==="customer"?e.innerHTML+=cardHtml:n.innerHTML+=cardHtml;
+    });
+}
+
+// ৩. ডাটা সিঙ্ক ও ফেচিং (অফলাইন লজিক সহ)
+async function fetchData(isSilent=false){
+    try{
+        updateOnlineStatus();
+        isFetching=true;
+        if(navigator.onLine){
+            const e=await fetch(SCRIPT_URL);
+            mainData=await e.json();
+            await db.meta.put({key:'mainData', value:mainData});
+            syncOfflineData();
+        } else {
+            const cached=await db.meta.get('mainData');
+            if(cached) mainData=cached.value;
+        }
+        extractPersonMeta(); processAndDisplayData();
+        isFetching=false;
+    }catch(e){console.error(e);isFetching=false;}
+}
+
+async function syncOfflineData(){
+    if(!navigator.onLine)return;
+    const pending=await db.entries.where("status").equals("pending").toArray();
+    for(const item of pending){
+        try{
+            const {id, status, ...dataToSend} = item;
+            const res=await fetch(SCRIPT_URL, {method:"POST", body:JSON.stringify(dataToSend)});
+            if(res.ok) await db.entries.update(item.id, {status: 'synced'});
+        }catch(e){}
+    }
+}
+
+// ৪. ডাটা সাবমিশন
+document.getElementById("dataForm").onsubmit=async function(e){
+    e.preventDefault();
+    const n=await Swal.fire({title:"নিশ্চিত?",icon:"question",showCancelButton:!0,confirmButtonColor:"#e11d48"});
+    if(n.isConfirmed) processSubmission();
+};
+
+async function processSubmission(){
+    const btn=document.getElementById("submitBtn"); btn.innerText="প্রসেসিং..."; btn.disabled=!0;
+    const t={ 
+        date:getFullDateTime(document.getElementById("date").value), 
+        source:document.getElementById("entrySource").value, 
+        type:document.getElementById("type").value, 
+        name:document.getElementById("name").value, 
+        mobile:convertToEnDigit(document.getElementById("mobile")?.value||"").replace(/\D/g,""), 
+        details:document.getElementById("details").value, 
+        amount:document.getElementById("amount").value,
+        status: navigator.onLine ? "synced" : "pending"
+    };
+    try{
+        await db.entries.add(t); // লোকাল সেভ
+        if(navigator.onLine){
+            await fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify(t)});
+            successAudio.play();
+            Swal.fire({icon:"success",title:"সফল!",timer:1500,showConfirmButton:!1});
+        } else {
+            Swal.fire({icon:"warning",title:"অফলাইনে সেভ হয়েছে",text:"অনলাইনে এলে অটো সিঙ্ক হবে"});
+        }
+        document.getElementById("dataForm").reset(); toggleModal(); fetchData(true);
+    }catch(e){Swal.fire("ত্রুটি","ডাটা সেভ হয়নি","error");}
+    btn.innerText="সাবমিট"; btn.disabled=!1;
+}
+
+// ৫. আপনার বাকি সব UI ফাংশন (অবিকল)
+function processAndDisplayData(){
+    let totals={joma:0,baki:0,compPaid:0,compBuy:0}, filterTotals={joma:0,baki:0,compPaid:0,compBuy:0};
+    let l=document.getElementById("sumStart").value, r=document.getElementById("sumEnd").value;
+    let o=calculateCurrentBalances();
+    mainData.slice(1).forEach(e=>{
+        const src=e[2], typ=e[6], amt=parseFloat(e[7])||0; let iso=parseToISODate(e[0]);
+        if(src==="customer"){ "Joma"===typ?totals.joma+=amt:totals.baki+=amt; if((!l||iso>=l)&&(!r||iso<=r))"Joma"===typ?filterTotals.joma+=amt:filterTotals.baki+=amt; }
+        else{ "Payment"===typ?totals.compPaid+=amt:totals.compBuy+=amt; if((!l||iso>=l)&&(!r||iso<=r))"Payment"===typ?filterTotals.compPaid+=amt:filterTotals.compBuy+=amt; }
+    });
+    renderCustomerUI(Object.values(o).sort((a,b)=>b.lastIndex-a.lastIndex));
+    document.getElementById("dashJoma").innerText="৳ "+formatNumber(totals.joma); document.getElementById("dashBaki").innerText="৳ "+formatNumber(totals.baki); document.getElementById("dashBalance").innerText="৳ "+formatNumber(totals.baki-totals.joma);
+    document.getElementById("compPaid").innerText="৳ "+formatNumber(totals.compPaid); document.getElementById("compBuy").innerText="৳ "+formatNumber(totals.compBuy); document.getElementById("compDena").innerText="৳ "+formatNumber(totals.compBuy-totals.compPaid);
+    if(document.getElementById("sumCustBakiTotal")){ document.getElementById("sumCustBakiTotal").innerText="৳ "+formatNumber(filterTotals.baki); document.getElementById("sumCustJomaTotal").innerText="৳ "+formatNumber(filterTotals.joma); document.getElementById("sumCustRemaining").innerText="৳ "+formatNumber(filterTotals.baki-filterTotals.joma); document.getElementById("sumCompBuyTotal").innerText="৳ "+formatNumber(filterTotals.compBuy); document.getElementById("sumCompPaidTotal").innerText="৳ "+formatNumber(filterTotals.compPaid); document.getElementById("sumCompDenaTotal").innerText="৳ "+formatNumber(filterTotals.compBuy-filterTotals.compPaid); updateCharts(filterTotals); }
+}
+
+function extractPersonMeta(){personMeta={};mainData.slice(1).forEach(e=>{const src=e[2],name=e[3],mob=e[4],det=e[5];if(name){if(!personMeta[name])personMeta[name]={mobile:mob,details:det,source:src};else{if(mob)personMeta[name].mobile=mob;if(det)personMeta[name].details=det;}}})}
+function toggleModal(){document.getElementById("entryModal").classList.toggle("hidden");if(!document.getElementById("entryModal").classList.contains("hidden"))document.getElementById("date").value=new Date().toISOString().split('T')[0];updateFields();}
+function updateFields(){const s=document.getElementById("entrySource").value,t=document.getElementById("type"),f=document.getElementById("dynamicFields");"customer"===s?(t.innerHTML='<option value="Baki">বাকি এন্ট্রি</option><option value="Joma">জমা এন্ট্রি</option>',f.innerHTML='<input type="text" id="name" list="nameSuggestions" onchange="autoFillByName(this.value)" placeholder="কাস্টমারের নাম" class="w-full p-3 border rounded-lg" required><input type="tel" id="mobile" list="mobileSuggestions" oninput="formatMobileInput(this)" placeholder="মোবাইল নম্বর" class="w-full p-3 border rounded-lg"><textarea id="details" placeholder="ঠিকানা" class="w-full p-3 border rounded-lg h-20"></textarea>'):(t.innerHTML='<option value="Purchase">মাল ক্রয়</option><option value="Payment">পরিশোধ</option>',f.innerHTML='<input type="text" id="name" list="nameSuggestions" onchange="autoFillByName(this.value)" placeholder="কোম্পানি নাম" class="w-full p-3 border rounded-lg" required><input type="tel" id="mobile" list="mobileSuggestions" oninput="formatMobileInput(this)" placeholder="মোবাইল নম্বর" class="w-full p-3 border rounded-lg"><textarea id="details" placeholder="নোট" class="w-full p-3 border rounded-lg h-20"></textarea>');updateSuggestions();}
+function formatNumber(e){return new Intl.NumberFormat("en-IN").format(e)}
+function getFormattedDate(e){if(!e)return"";const n=new Date(e);return`${String(n.getDate()).padStart(2,"0")}/${String(n.getMonth()+1).padStart(2,"0")}/${String(n.getFullYear()).slice(-2)}`}
+function getFullDateTime(d){const now=new Date(),dt=d?new Date(d):now;return`${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getFullYear()).slice(-2)} Time:${now.getHours()%12||12}:${String(now.getMinutes()).padStart(2,'0')}${now.getHours()>=12?'PM':'AM'}`;}
+function handleAmountInput(e){let v=convertToEnDigit(e.value).replace(/[^0-9.]/g,"");v?(e.value="৳ "+formatNumber(v),document.getElementById("amount").value=v):(e.value="",document.getElementById("amount").value="")}
+function toggleDarkMode(){document.documentElement.classList.toggle("dark");localStorage.setItem("theme",document.documentElement.classList.contains("dark")?"dark":"light");updateDarkIcon()}
+function updateDarkIcon(){document.getElementById("darkIcon").className=document.documentElement.classList.contains("dark")?"fa-solid fa-sun":"fa-solid fa-moon"}
+function updateOnlineStatus(){const t=document.getElementById("statusText"),p=document.getElementById("statusPing"),d=document.getElementById("statusDot");if(navigator.onLine){p.classList.remove("hidden");d.className="relative inline-flex rounded-full h-2 w-2 bg-green-500";t.innerText="Online";syncOfflineData();}else{p.classList.add("hidden");d.className="relative inline-flex rounded-full h-2 w-2 bg-red-500";t.innerText="Offline";}}
+function showTab(e){document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active-tab"));document.getElementById(e).classList.add("active-tab");document.querySelectorAll(".nav-btn").forEach(el=>el.classList.remove("nav-active"));event.currentTarget.classList.add("nav-active");if(e==="summary")processAndDisplayData()}
+function updateCharts(e){const n={responsive:!0,maintainAspectRatio:!1,plugins:{legend:{position:"bottom",labels:{boxWidth:12,font:{size:10}}}}};if(custChartInstance)custChartInstance.destroy();custChartInstance=new Chart(document.getElementById("custChart"),{type:"doughnut",data:{labels:["বাকি","জমা"],datasets:[{data:[e.baki,e.joma],backgroundColor:["#e11d48","#10b981"]}]},options:n});if(compChartInstance)compChartInstance.destroy();compChartInstance=new Chart(document.getElementById("compChart"),{type:"pie",data:{labels:["ক্রয়","পরিশোধ"],datasets:[{data:[e.compBuy,e.compPaid],backgroundColor:["#3b82f6","#10b981"]}]},options:n});}
+function searchCustomer(){filterList("custSearch","customerList")}
+function searchCompany(){filterList("compSearch","companyList")}
+function filterList(e,n){let t=document.getElementById(e).value.toUpperCase(),a=document.getElementById(n).children;for(let el of a)el.style.display=el.innerText.toUpperCase().includes(t)?"":"none"}
+function sortDataByBalance(order){let o=calculateCurrentBalances();renderCustomerUI(Object.values(o).sort((a,b)=>order==='desc'?b.balance-a.balance:a.balance-b.balance));}
+function updateSuggestions(){const e=document.getElementById("nameSuggestions"),n=document.getElementById("mobileSuggestions"),t=document.getElementById("entrySource").value;e.innerHTML="";n.innerHTML="";Object.keys(personMeta).forEach(a=>{if(personMeta[a].source===t){e.innerHTML+=`<option value="${a}">`;if(personMeta[a].mobile)n.innerHTML+=`<option value="${personMeta[a].mobile}">`;}})}
+function autoFillByName(v){if(personMeta[v]){const n=document.getElementById("mobile"),t=document.getElementById("details");if(n)n.value=personMeta[v].mobile;if(t)t.value=personMeta[v].details}}
+function formatMobileInput(e){let n=convertToEnDigit(e.value).replace(/\D/g,"").substring(0,11);e.value=n}
+function openCustomReport(name){currentReportName=name;const now=new Date();document.getElementById("reportStart").value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];document.getElementById("reportEnd").value=now.toISOString().split('T')[0];filterReport();document.getElementById("reportModal").classList.remove("hidden");}
+function closeReport(){document.getElementById("reportModal").classList.add("hidden")}
+
+function filterReport(){
+    const name=currentReportName, start=document.getElementById("reportStart").value, end=document.getElementById("reportEnd").value;
+    const meta=personMeta[name];
+    document.getElementById("rcptName").innerText=name;
+    document.getElementById("rcptPhone").innerHTML = meta?.mobile ? `<a href="tel:${meta.mobile}" style="color: #2563eb; font-weight: bold;">${meta.mobile}</a>` : "মোবাইল নেই";
+    document.getElementById("rcptAddress").innerText=meta?.details || "ঠিকানা নেই";
+    document.getElementById("rcptDateRange").innerText=`${getFormattedDate(start)} হতে ${getFormattedDate(end)}`;
+    document.getElementById("genDate").innerText=new Date().toLocaleString();
+    let prevBal=0, periodJoma=0, periodBaki=0, rows="";
+    mainData.slice(1).forEach(item => {
+        if(item[3] !== name) return;
+        let iso = parseToISODate(item[0]);
+        const typ=item[6], amt=parseFloat(item[7])||0, isCr=(typ==="Joma" || typ==="Payment");
+        if(iso < start) prevBal += isCr ? -amt : amt;
+        else if(iso >= start && iso <= end){
+            isCr?periodJoma+=amt:periodBaki+=amt;
+            rows += `<tr class="border-b border-gray-100"><td class="py-2 text-[10px]">${item[0].split(" ")[0]}</td><td class="py-2 text-[10px]">${item[5]||'-'}</td><td class="py-2 text-right font-bold text-green-600">${isCr?formatNumber(amt):'-'}</td><td class="py-2 text-right font-bold text-rose-600">${isCr?'-':formatNumber(amt)}</td></tr>`;
+        }
+    });
+    document.getElementById("prevBalance").innerText="৳ "+formatNumber(prevBal);
+    document.getElementById("rcptBody").innerHTML=rows;
+    document.getElementById("totalJoma").innerText="৳ "+formatNumber(periodJoma);
+    document.getElementById("totalBaki").innerText="৳ "+formatNumber(periodBaki);
+    document.getElementById("finalBalance").innerText="৳ "+formatNumber(prevBal + periodBaki - periodJoma);
+}
+async function downloadPDF() {
+    const el = document.getElementById('receiptArea');
+    
+    // ডাউনলোড শুরু হওয়ার একটি মেসেজ (মোবাইলে এটি জরুরি কারণ প্রসেসিং হতে সময় লাগে)
+    Swal.fire({
+        title: 'অপেক্ষা করুন...',
+        text: 'হাই-কোয়ালিটি পিডিএফ তৈরি হচ্ছে',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    const opt = {
+        margin: [0.2, 0.2, 0.2, 0.2],
+        filename: `Samiya_Fashion_${currentReportName}.pdf`,
+        image: { type: 'jpeg', quality: 1.0 }, 
+        html2canvas: { 
+            scale: 4, // হাই রেজোলিউশন নিশ্চিত করবে
+            useCORS: true,
+            letterRendering: false, 
+            allowTaint: false,
+            logging: false
+        },
+        jsPDF: { 
+            unit: 'in', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true 
+        }
+    };
+
+    try {
+        await html2pdf().set(opt).from(el).save();
+        Swal.close();
+    } catch (error) {
+        Swal.fire("ত্রুটি", "পিডিএফ তৈরি করা সম্ভব হয়নি", "error");
+    }
+}
+async function shareReport(){const txt=`সামিয়া ফ্যাশন\nঅ্যাকাউন্ট: ${currentReportName}\nবর্তমান দেনা: ${document.getElementById("finalBalance").innerText}`;if(navigator.share){try{await navigator.share({title:'Statement',text:txt})}catch(e){}}else{navigator.clipboard.writeText(txt);Swal.fire("কপি হয়েছে!")}}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+PullToRefresh.init({mainElement:"body",onRefresh:()=>(refreshAudio.play(),fetchData())});
+
+window.onload=()=>{
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('service-worker.js'); }
+    sessionStorage.getItem("isLoggedIn")==="true" && document.getElementById("loginOverlay").classList.add("hidden");
+    "dark"===localStorage.theme && document.documentElement.classList.add("dark");
+    updateDarkIcon(); updateOnlineStatus(); fetchData();
+};
+</script>
+</body>
+</html>
