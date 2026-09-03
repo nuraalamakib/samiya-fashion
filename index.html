@@ -267,6 +267,53 @@ nav {
 }
 
 /* =====================================================
+   REPORT ROW ACTIONS
+===================================================== */
+.report-action-cell {
+    white-space: nowrap;
+    min-width: 62px;
+}
+
+.report-action-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+    border: 0;
+    cursor: pointer;
+    font-size: 11px;
+    transition: transform .15s ease, opacity .15s ease;
+}
+
+.report-action-btn:active {
+    transform: scale(.9);
+}
+
+.report-action-edit {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.report-action-delete {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+@media (max-width: 640px) {
+    .report-action-cell {
+        min-width: 58px;
+    }
+    .report-action-btn {
+        width: 25px;
+        height: 25px;
+        font-size: 10px;
+    }
+}
+
+/* =====================================================
    MOBILE / SMALL SCREEN LAYOUT
 ===================================================== */
 html, body {
@@ -1215,6 +1262,10 @@ class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
                                 বাকি
                             </th>
 
+                            <th class="text-right py-2">
+                                কাজ
+                            </th>
+
                         </tr>
 
                     </thead>
@@ -1502,7 +1553,7 @@ class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
 ===================================================== */
 
 const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbxivFzWPJj0WagpgGmUL_5lf3g0CgxZ5MCL6FH_FW1UG_6wj1U0YXDmzleN_SGhjv01KQ/exec";
+"https://script.google.com/macros/s/AKfycbxd1q3fBMArkV5FejIGAGD_W-jYem_n63UJoSq2TGcGGdYR8BQruwJloMAhEevc-xpd/exec";
 
 
 let mainData = [];
@@ -5030,9 +5081,15 @@ function filterReport() {
     const startText = start ? getFormattedDate(start) : "শুরু থেকে";
     const endText = end ? getFormattedDate(end) : "শেষ পর্যন্ত";
     document.getElementById("rcptDateRange").innerText = `${startText} হতে ${endText}`;
-    document.getElementById("genDate").innerText = new Date().toLocaleString("bn-BD", {year:"numeric",month:"2-digit",day:"2-digit",hour:"numeric",minute:"2-digit",hour12:true});
+    document.getElementById("genDate").innerText = new Date().toLocaleString("bn-BD", {
+        year:"numeric", month:"2-digit", day:"2-digit",
+        hour:"numeric", minute:"2-digit", hour12:true
+    });
 
-    let prevBal = 0, periodJoma = 0, periodBaki = 0, rows = "";
+    let prevBal = 0;
+    let periodJoma = 0;
+    let periodBaki = 0;
+    let rows = "";
 
     mainData.slice(1).forEach(item => {
         const itemSource = String(item[2] || "").toLowerCase().trim();
@@ -5041,39 +5098,303 @@ function filterReport() {
 
         const iso = parseToISODate(item[0]);
         if (!iso) return;
+
         const typ = String(item[6] || "").trim();
         const amt = roundMoney(item[7]);
-        const isCredit = source === "customer" ? typ === "Joma" : typ === "Payment";
+        const isCredit = source === "customer"
+            ? typ === "Joma"
+            : typ === "Payment";
 
         if (start && iso < start) {
-            prevBal = roundMoney(prevBal + (isCredit ? -amt : amt));
+            prevBal = roundMoney(
+                prevBal + (isCredit ? -amt : amt)
+            );
             return;
         }
 
         if ((!start || iso >= start) && (!end || iso <= end)) {
-            if (isCredit) periodJoma = roundMoney(periodJoma + amt);
-            else periodBaki = roundMoney(periodBaki + amt);
+            if (isCredit) {
+                periodJoma = roundMoney(periodJoma + amt);
+            } else {
+                periodBaki = roundMoney(periodBaki + amt);
+            }
 
             const dateText = escapeHtml(getRowDateText(item));
             const detail = escapeHtml(item[5] || "-");
+            const txId = String(item[8] || "").trim();
+            const safeTxId = escapeHtml(txId);
+
             const dateHtml = dateText.includes(" Time:")
-                ? dateText.replace(" Time:", "<br><span class='text-gray-400 text-[8px]'>") + "</span>"
+                ? dateText.replace(
+                    " Time:",
+                    "<br><span class='text-gray-400 text-[8px]'>"
+                  ) + "</span>"
                 : dateText;
 
-            rows += `<tr class="border-b border-gray-100">
+            /*
+             * Each report row carries its real Transaction ID.
+             * Edit changes only amount (column H).
+             * Delete removes the complete Sheet row.
+             */
+            const txArg = JSON.stringify(txId)
+                .replace(/</g, "\\u003c")
+                .replace(/>/g, "\\u003e")
+                .replace(/&/g, "\\u0026");
+
+            rows += `<tr class="border-b border-gray-100 align-middle">
                 <td class="py-2 text-[10px] leading-tight">${dateHtml}</td>
                 <td class="py-2 text-[10px]">${detail}</td>
                 <td class="py-2 text-right font-bold text-green-600">${isCredit ? formatNumber(amt) : "-"}</td>
                 <td class="py-2 text-right font-bold text-rose-600">${isCredit ? "-" : formatNumber(amt)}</td>
+                <td class="py-2 text-right report-action-cell">
+                    <button
+                        type="button"
+                        class="report-action-btn report-action-edit"
+                        title="টাকার পরিমাণ পরিবর্তন"
+                        aria-label="টাকার পরিমাণ পরিবর্তন"
+                        onclick='editReportTransaction(${txArg})'
+                    >
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="report-action-btn report-action-delete"
+                        title="সম্পূর্ণ লেনদেন মুছুন"
+                        aria-label="সম্পূর্ণ লেনদেন মুছুন"
+                        onclick='deleteReportTransaction(${txArg})'
+                    >
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
             </tr>`;
         }
     });
 
-    document.getElementById("prevBalance").innerText = "৳ " + formatNumber(prevBal);
-    document.getElementById("rcptBody").innerHTML = rows || `<tr><td colspan="4" class="text-center py-6 text-gray-400">এই সময়ের কোনো লেনদেন নেই</td></tr>`;
-    document.getElementById("totalJoma").innerText = "৳ " + formatNumber(periodJoma);
-    document.getElementById("totalBaki").innerText = "৳ " + formatNumber(periodBaki);
-    document.getElementById("finalBalance").innerText = "৳ " + formatNumber(roundMoney(prevBal + periodBaki - periodJoma));
+    document.getElementById("prevBalance").innerText =
+        "৳ " + formatNumber(prevBal);
+
+    document.getElementById("rcptBody").innerHTML = rows ||
+        `<tr><td colspan="5" class="text-center py-6 text-gray-400">এই সময়ের কোনো লেনদেন নেই</td></tr>`;
+
+    document.getElementById("totalJoma").innerText =
+        "৳ " + formatNumber(periodJoma);
+
+    document.getElementById("totalBaki").innerText =
+        "৳ " + formatNumber(periodBaki);
+
+    document.getElementById("finalBalance").innerText =
+        "৳ " + formatNumber(
+            roundMoney(prevBal + periodBaki - periodJoma)
+        );
+}
+
+
+/* =====================================================
+   REPORT ROW EDIT / DELETE
+===================================================== */
+
+async function postReportAction_(payload) {
+    const res = await fetch(
+        SCRIPT_URL + "?action=" + encodeURIComponent(payload.action) + "&t=" + Date.now(),
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload),
+            cache: "no-store"
+        }
+    );
+
+    let result = {};
+    try {
+        result = await res.json();
+    } catch (e) {
+        throw new Error("সার্ভার থেকে সঠিক উত্তর পাওয়া যায়নি।");
+    }
+
+    if (!res.ok || result.status !== "success") {
+        throw new Error(result.message || "সার্ভার আপডেট করা যায়নি।");
+    }
+
+    return result;
+}
+
+
+async function editReportTransaction(transactionId) {
+
+    if (!transactionId) {
+        Swal.fire("সমস্যা", "এই লেনদেনের Transaction ID পাওয়া যায়নি।", "error");
+        return;
+    }
+
+    const row = mainData.slice(1).find(item =>
+        String(item?.[8] || "").trim() === String(transactionId).trim()
+    );
+
+    if (!row) {
+        Swal.fire("ডাটা পাওয়া যায়নি", "এই লেনদেনটি সর্বশেষ ডাটায় নেই।", "warning");
+        await fetchData(true);
+        return;
+    }
+
+    const currentAmount = roundMoney(row[7]);
+
+    const result = await Swal.fire({
+        title: "টাকার পরিমাণ পরিবর্তন",
+        html: `<div class="text-sm text-gray-500 mb-2">${escapeHtml(row[3] || "")} — ${escapeHtml(row[5] || "")}</div>`,
+        input: "number",
+        inputValue: currentAmount,
+        inputAttributes: {
+            min: "0.01",
+            step: "0.01",
+            inputmode: "decimal"
+        },
+        showCancelButton: true,
+        confirmButtonText: "সেভ করুন",
+        cancelButtonText: "বাতিল",
+        confirmButtonColor: "#e11d48",
+        inputValidator: value => {
+            const amount = Number(convertToEnDigit(value));
+            if (!isFinite(amount) || amount <= 0) {
+                return "সঠিক টাকার পরিমাণ দিন।";
+            }
+            return undefined;
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    const newAmount = roundMoney(
+        Number(convertToEnDigit(result.value))
+    );
+
+    if (newAmount === currentAmount) {
+        Swal.fire({
+            icon: "info",
+            title: "কোনো পরিবর্তন হয়নি",
+            timer: 1100,
+            showConfirmButton: false
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: "আপডেট হচ্ছে...",
+        text: "শিটের সাথে মিলিয়ে নেওয়া হচ্ছে",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        await postReportAction_({
+            action: "editTransaction",
+            transactionId: transactionId,
+            amount: newAmount
+        });
+
+        /* Fresh server read makes the change visible immediately everywhere. */
+        await fetchData(true);
+        filterReport();
+
+        await Swal.fire({
+            icon: "success",
+            title: "আপডেট হয়েছে",
+            text: "টাকার পরিমাণ Sheet-এও পরিবর্তন করা হয়েছে।",
+            timer: 1200,
+            showConfirmButton: false
+        });
+
+    } catch (err) {
+        console.error("Edit transaction error:", err);
+        Swal.fire(
+            "আপডেট হয়নি",
+            err?.message || "সার্ভার/ইন্টারনেট সমস্যা হয়েছে।",
+            "error"
+        );
+    }
+}
+
+
+async function deleteReportTransaction(transactionId) {
+
+    if (!transactionId) {
+        Swal.fire("সমস্যা", "এই লেনদেনের Transaction ID পাওয়া যায়নি।", "error");
+        return;
+    }
+
+    const row = mainData.slice(1).find(item =>
+        String(item?.[8] || "").trim() === String(transactionId).trim()
+    );
+
+    if (!row) {
+        Swal.fire("ডাটা পাওয়া যায়নি", "এই লেনদেনটি সর্বশেষ ডাটায় নেই।", "warning");
+        await fetchData(true);
+        return;
+    }
+
+    const amount = roundMoney(row[7]);
+    const name = String(row[3] || "").trim();
+    const detail = String(row[5] || "").trim();
+
+    const confirm = await Swal.fire({
+        icon: "warning",
+        title: "লেনদেনটি মুছে ফেলবেন?",
+        html: `
+            <div class="text-sm text-gray-600">
+                <b>${escapeHtml(name)}</b><br>
+                ${escapeHtml(detail || "লেনদেন")}<br>
+                <span class="text-rose-600 font-bold">৳ ${formatNumber(amount)}</span>
+            </div>
+            <div class="text-xs text-red-500 mt-3">এই পুরো row Sheet থেকেও মুছে যাবে।</div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "হ্যাঁ, মুছুন",
+        cancelButtonText: "বাতিল",
+        confirmButtonColor: "#dc2626",
+        reverseButtons: true
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({
+        title: "মুছে ফেলা হচ্ছে...",
+        text: "Sheet আপডেট হচ্ছে",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        await postReportAction_({
+            action: "deleteTransaction",
+            transactionId: transactionId
+        });
+
+        /* Never let an old locally-confirmed copy resurrect a deleted row. */
+        knownLocalTransactions.delete(transactionId);
+
+        /* Fresh server read keeps Dashboard, balances and report synchronized. */
+        await fetchData(true);
+        filterReport();
+
+        await Swal.fire({
+            icon: "success",
+            title: "মুছে ফেলা হয়েছে",
+            text: "লেনদেনটি Sheet থেকেও মুছে গেছে।",
+            timer: 1200,
+            showConfirmButton: false
+        });
+
+    } catch (err) {
+        console.error("Delete transaction error:", err);
+        Swal.fire(
+            "মুছে ফেলা হয়নি",
+            err?.message || "সার্ভার/ইন্টারনেট সমস্যা হয়েছে।",
+            "error"
+        );
+    }
 }
 
 
