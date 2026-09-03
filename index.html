@@ -8,6 +8,8 @@
 <meta name="viewport"
 content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+<meta name="theme-color" content="#e11d48">
+
 <title>Samiya Fashion</title>
 
 <link rel="manifest" href="manifest.json">
@@ -212,6 +214,218 @@ nav {
     color: #9ca3af;
 }
 
+/* =====================================================
+   VOICE SEARCH - INLINE STATUS
+===================================================== */
+.voice-status {
+    min-height: 18px;
+    margin: 4px 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e11d48;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+.voice-status.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.voice-status .voice-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+    animation: voicePulse 1s ease-in-out infinite;
+    flex: 0 0 auto;
+}
+
+.voice-status.listening {
+    color: #e11d48;
+}
+
+.voice-status.processing {
+    color: #2563eb;
+}
+
+.voice-status.success {
+    color: #16a34a;
+}
+
+.voice-status.error {
+    color: #dc2626;
+}
+
+@keyframes voicePulse {
+    0%, 100% { transform: scale(.75); opacity: .55; }
+    50% { transform: scale(1.25); opacity: 1; }
+}
+
+/* =====================================================
+   MOBILE / SMALL SCREEN LAYOUT
+===================================================== */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+#main-content {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.search-wrap {
+    width: 100%;
+    min-width: 0;
+}
+
+.search-input {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+
+    body {
+        padding-bottom: 74px !important;
+    }
+
+    header {
+        padding: 10px 12px !important;
+    }
+
+    #main-content {
+        padding: 10px !important;
+    }
+
+    .search-input {
+        min-height: 44px;
+        padding: 10px 88px 10px 12px !important;
+        font-size: 14px !important;
+        border-radius: 12px !important;
+    }
+
+    .search-actions {
+        right: 6px;
+        gap: 3px;
+    }
+
+    .search-btn {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+    }
+
+    .voice-status {
+        font-size: 10px;
+        min-height: 16px;
+    }
+
+    /* Keep cards inside the viewport. */
+    #customerList > div,
+    #companyList > div {
+        max-width: 100%;
+        box-sizing: border-box;
+        gap: 8px;
+    }
+
+    #customerList h3,
+    #companyList h3 {
+        font-size: 16px !important;
+        overflow-wrap: anywhere;
+    }
+
+    #customerList button,
+    #companyList button {
+        max-width: 48%;
+    }
+
+    nav {
+        height: 64px !important;
+        padding: 6px 3px !important;
+    }
+
+    .nav-btn {
+        min-width: 0;
+        flex: 1;
+        padding: 0 4px !important;
+        font-size: 10px;
+    }
+
+    .nav-btn i {
+        font-size: 1.05rem;
+    }
+
+    .nav-active {
+        transform: scale(1.08);
+    }
+
+    .fab-button {
+        right: 14px;
+        bottom: 76px;
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    /* Report modal fits the phone viewport. */
+    #reportModal {
+        padding: 0 !important;
+        align-items: stretch !important;
+    }
+
+    #reportModal > div {
+        width: 100% !important;
+        max-width: none !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+    }
+
+    #reportModal .p-4 {
+        padding: 10px !important;
+    }
+
+    #reportModal #receiptArea {
+        padding: 12px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    #receiptArea h1 {
+        font-size: 23px !important;
+    }
+
+    #receiptArea table {
+        font-size: 11px !important;
+    }
+
+    #receiptArea th,
+    #receiptArea td {
+        padding: 4px 2px !important;
+        word-break: break-word;
+    }
+
+    #entryModal {
+        padding: 8px !important;
+    }
+
+    #entryModal > div {
+        max-height: calc(100dvh - 16px) !important;
+        padding: 14px !important;
+        border-radius: 16px !important;
+    }
+}
+
 </style>
 
 </head>
@@ -406,6 +620,11 @@ class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
 
     </div>
 
+    <div id="custVoiceStatus" class="voice-status" aria-live="polite">
+        <span class="voice-dot"></span>
+        <span class="voice-status-text">শুনছি...</span>
+    </div>
+
 
     <div class="flex justify-between items-center px-1 mb-2">
 
@@ -529,6 +748,11 @@ class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
 
         </div>
 
+    </div>
+
+    <div id="compVoiceStatus" class="voice-status" aria-live="polite">
+        <span class="voice-dot"></span>
+        <span class="voice-status-text">শুনছি...</span>
     </div>
 
 
@@ -1278,7 +1502,7 @@ class="fixed inset-0 z-[200] flex items-center justify-center bg-rose-600">
 ===================================================== */
 
 const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbwEBywhXaIvRe1CXRFBmcAh2HLTcGbVJWW1B10vR5SHHXn1OTRrGTTdLvi4m56HgFbg/exec";
+"https://script.google.com/macros/s/AKfycbxivFzWPJj0WagpgGmUL_5lf3g0CgxZ5MCL6FH_FW1UG_6wj1U0YXDmzleN_SGhjv01KQ/exec";
 
 
 let mainData = [];
@@ -1406,10 +1630,190 @@ function normalizeSearch(str) {
 
     return convertToEnDigit(
         String(str || '')
+            .normalize('NFKC')
             .toLowerCase()
             .trim()
     )
-    .replace(/[৳,.\-\s]/g, '');
+    /* Common Bengali spelling / voice-recognition variants. */
+    .replace(/[ী]/g, 'ি')
+    .replace(/[ুূ]/g, 'ু')
+    .replace(/[েৈ]/g, 'ে')
+    .replace(/[োৌ]/g, 'ো')
+    .replace(/ড়/g, 'ড়')
+    .replace(/ঢ়/g, 'ঢ়')
+    .replace(/য়/g, 'য')
+    .replace(/়/g, '')
+    .replace(/[৳,\.\-\s]/g, '');
+}
+
+
+function normalizeSearchLoose(str) {
+
+    return normalizeSearch(str)
+    /* Loose form helps voice variants such as আকীব -> আকিব. */
+    .replace(/[ািীুূৃেৈোৌ]/g, '')
+    .replace(/[ংঃঁ]/g, '')
+    .replace(/্/g, '');
+}
+
+
+function levenshteinDistance_(a, b) {
+
+    a = String(a || '');
+    b = String(b || '');
+
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+
+    if (a.length > b.length) {
+        const tmp = a;
+        a = b;
+        b = tmp;
+    }
+
+    let prev = Array.from({length:a.length + 1}, (_, i) => i);
+
+    for (let j = 1; j <= b.length; j++) {
+
+        const cur = [j];
+
+        for (let i = 1; i <= a.length; i++) {
+
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+
+            cur[i] = Math.min(
+                cur[i - 1] + 1,
+                prev[i] + 1,
+                prev[i - 1] + cost
+            );
+        }
+
+        prev = cur;
+    }
+
+    return prev[a.length];
+}
+
+
+function fuzzyTokenScore_(query, token) {
+
+    const q = normalizeSearch(query);
+    const t = normalizeSearch(token);
+
+    if (!q || !t) return 0;
+    if (t.includes(q)) return 1;
+
+    const qLoose = normalizeSearchLoose(q);
+    const tLoose = normalizeSearchLoose(t);
+
+    if (qLoose && tLoose && tLoose.includes(qLoose)) return 0.97;
+
+    const maxLen = Math.max(q.length, t.length);
+    const minLen = Math.min(q.length, t.length);
+
+    /* Very short queries should remain precise. */
+    if (q.length <= 2) return 0;
+
+    const distance = levenshteinDistance_(q, t);
+    const looseDistance =
+        qLoose && tLoose
+            ? levenshteinDistance_(qLoose, tLoose)
+            : distance;
+
+    const allowed =
+        q.length <= 3 ? 1 :
+        q.length <= 5 ? 2 : 3;
+
+    const bestDistance = Math.min(distance, looseDistance);
+
+    if (bestDistance <= allowed) {
+        return Math.max(
+            0.55,
+            1 - (bestDistance / Math.max(maxLen, 1))
+        );
+    }
+
+    /* Prefix matching catches speech truncation. */
+    if (minLen >= 3) {
+        const prefixLen = Math.min(
+            q.length,
+            t.length,
+            Math.max(2, Math.floor(q.length * 0.65))
+        );
+
+        if (
+            q.slice(0, prefixLen) === t.slice(0, prefixLen) ||
+            qLoose.slice(0, Math.min(prefixLen, qLoose.length)) ===
+            tLoose.slice(0, Math.min(prefixLen, tLoose.length))
+        ) {
+            return 0.58;
+        }
+    }
+
+    return 0;
+}
+
+
+function fuzzySearchScore_(query, text) {
+
+    const q = normalizeSearch(query);
+    if (!q) return 1;
+
+    const raw = String(text || '');
+    const exact = normalizeSearch(raw);
+
+    if (exact.includes(q)) return 1;
+
+    const looseQ = normalizeSearchLoose(q);
+    const looseText = normalizeSearchLoose(raw);
+
+    if (looseQ && looseText.includes(looseQ)) return 0.98;
+
+    /* Search individual words/fields so one bad voice word does not hide
+       an otherwise relevant account. */
+    const tokens = raw
+        .split(/[\s,;|/\\]+/)
+        .filter(Boolean);
+
+    let best = 0;
+
+    tokens.forEach(token => {
+        best = Math.max(best, fuzzyTokenScore_(q, token));
+    });
+
+    /* Also compare the whole normalized field for names such as আমাক. */
+    best = Math.max(best, fuzzyTokenScore_(q, raw));
+
+    return best;
+}
+
+
+function accountSearchScore_(account, query) {
+
+    const q = normalizeSearch(query);
+    if (!q) return 1;
+
+    const fields = [
+        account.name,
+        account.mobile,
+        account.details,
+        account.source,
+        account.balance,
+        formatNumber(account.balance),
+        ...(account.searchData || [])
+    ];
+
+    let best = 0;
+
+    fields.forEach(field => {
+        best = Math.max(
+            best,
+            fuzzySearchScore_(q, field)
+        );
+    });
+
+    return best;
 }
 
 
@@ -2659,13 +3063,22 @@ function calculateCurrentBalances() {
 
                     balance:0,
 
-                    lastIndex:index
+                    lastIndex:index,
+
+                    /* Every transaction field is kept for fuzzy search. */
+                    searchData:[]
                 };
             }
 
 
             const a =
             accounts[key];
+
+            /* Make every row field searchable: date, time, name, mobile,
+               details, type, amount and transaction ID. */
+            a.searchData.push(
+                row.map(v => String(v ?? "")).join(" ")
+            );
 
 
             a.lastIndex =
@@ -2854,49 +3267,60 @@ function renderCustomerUI(
     sortedData.forEach(
         account => {
 
-            const searchText =
-            normalizeSearch(
-                [
-                    account.name,
-                    account.mobile,
-                    account.details,
-                    account.source,
-                    formatNumber(account.balance),
-                    account.balance
-                ].join(" ")
-            );
-
+            const score =
+                accountSearchScore_(
+                    account,
+                    account.source === "customer"
+                        ? customerQuery
+                        : companyQuery
+                );
 
             if (
                 account.source ===
                 "customer"
             ) {
 
-                if (
-                    !custQ ||
-                    searchText.includes(custQ)
-                ) {
-                    custResults.push(account);
+                if (!custQ || score >= 0.55) {
+                    custResults.push({ account, score });
                 }
 
             } else {
 
-                if (
-                    !compQ ||
-                    searchText.includes(compQ)
-                ) {
-                    compResults.push(account);
+                if (!compQ || score >= 0.55) {
+                    compResults.push({ account, score });
                 }
             }
         }
     );
+
+    /* With a search query, show the closest matches first.
+       Without a query, keep the existing newest/account ordering. */
+    if (custQ) {
+        custResults.sort((a, b) =>
+            (b.score - a.score) ||
+            (a.account.lastIndex - b.account.lastIndex)
+        );
+    }
+
+    if (compQ) {
+        compResults.sort((a, b) =>
+            (b.score - a.score) ||
+            (a.account.lastIndex - b.account.lastIndex)
+        );
+    }
+
+    const customerAccounts =
+        custResults.map(item => item.account);
+
+    const companyAccounts =
+        compResults.map(item => item.account);
 
 
     /*
      * Render customer.
      */
 
-    custResults
+    customerAccounts
     .slice(0,displayedCount)
     .forEach(account => {
 
@@ -3034,7 +3458,7 @@ function renderCustomerUI(
      * Render company.
      */
 
-    compResults
+    companyAccounts
     .slice(0,displayedCount)
     .forEach(account => {
 
@@ -3185,7 +3609,7 @@ function renderCustomerUI(
 
 
     if (
-        custResults.length === 0
+        customerAccounts.length === 0
     ) {
 
         customerList.innerHTML = `
@@ -3198,7 +3622,7 @@ function renderCustomerUI(
 
 
     if (
-        compResults.length === 0
+        companyAccounts.length === 0
     ) {
 
         companyList.innerHTML = `
@@ -3255,6 +3679,8 @@ function clearSearch(id) {
 
     input.value = "";
 
+    clearVoiceStatus_(id);
+
     processAndDisplayData();
 
     input.focus();
@@ -3268,164 +3694,179 @@ function clearSearch(id) {
 let activeRecognition = null;
 
 
+function setVoiceStatus_(inputId, state, text) {
+
+    const status =
+        document.getElementById(
+            inputId === "custSearch"
+                ? "custVoiceStatus"
+                : "compVoiceStatus"
+        );
+
+    if (!status) return;
+
+    const textEl =
+        status.querySelector(
+            ".voice-status-text"
+        );
+
+    status.className =
+        "voice-status show " +
+        (state || "");
+
+    if (textEl) {
+        textEl.innerText = text || "";
+    }
+}
+
+
+function clearVoiceStatus_(inputId) {
+
+    const status =
+        document.getElementById(
+            inputId === "custSearch"
+                ? "custVoiceStatus"
+                : "compVoiceStatus"
+        );
+
+    if (!status) return;
+
+    status.className = "voice-status";
+}
+
+
 function voiceSearch(inputId) {
 
     const input =
-    document.getElementById(
-        inputId
-    );
-
+        document.getElementById(
+            inputId
+        );
 
     const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
 
+    if (!input) return;
 
     if (!SpeechRecognition) {
+        setVoiceStatus_(
+            inputId,
+            "error",
+            "এই ব্রাউজারে ভয়েস সার্চ সাপোর্ট নেই"
+        );
 
-        Swal.fire({
-
-            icon:"info",
-
-            title:"Voice Search নেই",
-
-            text:
-            "এই browser voice search support করে না। Chrome বা Edge ব্যবহার করুন।",
-
-            confirmButtonColor:"#e11d48"
-        });
+        setTimeout(
+            () => clearVoiceStatus_(inputId),
+            2500
+        );
 
         return;
     }
 
-
-    if (
-        activeRecognition
-    ) {
-
+    /* Clicking the microphone again stops the current recognition. */
+    if (activeRecognition) {
         try {
             activeRecognition.stop();
-        } catch(e) {}
+        } catch (e) {}
 
         activeRecognition = null;
-
+        setVoiceStatus_(
+            inputId,
+            "processing",
+            "বন্ধ করা হচ্ছে..."
+        );
         return;
     }
 
-
     const recognition =
-    new SpeechRecognition();
+        new SpeechRecognition();
 
+    activeRecognition = recognition;
 
-    activeRecognition =
-    recognition;
-
-
-    recognition.lang =
-    "bn-BD";
-
-
-    recognition.continuous =
-    false;
-
-
-    recognition.interimResults =
-    false;
-
+    recognition.lang = "bn-BD";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 5;
 
     input.classList.add(
         "ring-2",
         "ring-rose-500"
     );
 
+    setVoiceStatus_(
+        inputId,
+        "listening",
+        "শুনছি..."
+    );
 
-    recognition.onstart =
-    function() {
-
-        Swal.fire({
-
-            title:"বলুন...",
-
-            text:"যে নাম বা মোবাইল খুঁজছেন তা বলুন।",
-
-            icon:"info",
-
-            timer:1800,
-
-            showConfirmButton:false
-        });
-    };
-
-
-    recognition.onresult =
-    function(event) {
-
-        const transcript =
-        event
-        .results[0][0]
-        .transcript
-        .trim();
-
-
-        input.value =
-        transcript;
-
-
-        input.dispatchEvent(
-            new Event("input")
+    recognition.onstart = function() {
+        setVoiceStatus_(
+            inputId,
+            "listening",
+            "শুনছি..."
         );
     };
 
+    recognition.onresult = function(event) {
 
-    recognition.onerror =
-    function(event) {
+        let finalText = "";
+        let interimText = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const text =
+                event.results[i][0].transcript.trim();
+
+            if (event.results[i].isFinal) {
+                finalText += " " + text;
+            } else {
+                interimText += " " + text;
+            }
+        }
+
+        const text =
+            (finalText || interimText).trim();
+
+        if (text) {
+            input.value = text;
+            setVoiceStatus_(
+                inputId,
+                finalText ? "processing" : "listening",
+                finalText
+                    ? "খুঁজছি..."
+                    : "শুনছি: " + text
+            );
+
+            input.dispatchEvent(
+                new Event("input", { bubbles:true })
+            );
+        }
+    };
+
+    recognition.onerror = function(event) {
 
         console.warn(
             "Voice error:",
             event.error
         );
 
+        let message = "ভয়েস সার্চ করা যায়নি";
 
-        if (
-            event.error !==
-            "aborted"
-        ) {
-
-            Swal.fire({
-
-                icon:"warning",
-
-                title:"Voice Search সমস্যা",
-
-                text:
-                "Microphone permission বা Internet connection পরীক্ষা করুন।",
-
-                confirmButtonColor:"#e11d48"
-            });
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+            message = "মাইক্রোফোনের অনুমতি দিন";
+        } else if (event.error === "no-speech") {
+            message = "কিছু শোনা যায়নি, আবার বলুন";
+        } else if (event.error === "network") {
+            message = "ইন্টারনেট সংযোগ পরীক্ষা করুন";
         }
-    };
 
-
-    recognition.onend =
-    function() {
-
-        activeRecognition =
-        null;
-
-        input.classList.remove(
-            "ring-2",
-            "ring-rose-500"
+        setVoiceStatus_(
+            inputId,
+            "error",
+            message
         );
     };
 
-
-    try {
-
-        recognition.start();
-
-    } catch(e) {
-
-        console.error(e);
+    recognition.onend = function() {
 
         activeRecognition = null;
 
@@ -3433,8 +3874,47 @@ function voiceSearch(inputId) {
             "ring-2",
             "ring-rose-500"
         );
+
+        const hasText =
+            Boolean(input.value.trim());
+
+        if (hasText) {
+            setVoiceStatus_(
+                inputId,
+                "success",
+                "সার্চ সম্পন্ন"
+            );
+
+            /* Keep the result visible briefly, then hide the status only. */
+            setTimeout(
+                () => clearVoiceStatus_(inputId),
+                1400
+            );
+        } else {
+            setTimeout(
+                () => clearVoiceStatus_(inputId),
+                1600
+            );
+        }
+    };
+
+    try {
+        recognition.start();
+    } catch (e) {
+        console.error(e);
+        activeRecognition = null;
+        input.classList.remove(
+            "ring-2",
+            "ring-rose-500"
+        );
+        setVoiceStatus_(
+            inputId,
+            "error",
+            "ভয়েস সার্চ শুরু করা যায়নি"
+        );
     }
 }
+
 
 
 /* =====================================================
