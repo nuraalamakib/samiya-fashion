@@ -1,24 +1,14 @@
 {
   "name": "Samiya Fashion",
-  "short_name": "Samiya",
-  "description": "Samiya Fashion Billing and Statement App",
-  "start_url": "index.html",
+  "short_name": "Samiya Fashion",
+  "description": "Samiya Fashion offline-first business and customer ledger",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#e11d48",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
   "theme_color": "#e11d48",
-  "icons": [
-    {
-      "src": "icon-512.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "lang": "bn-BD",
+  "dir": "ltr",
+  "icons": []
 }
